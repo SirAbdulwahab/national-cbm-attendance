@@ -6,7 +6,11 @@ Next.js App Router application using Supabase Auth and the Supabase `profiles` t
 
 Copy `.env.local.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` to the project root URL (`https://<project-ref>.supabase.co`) and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the project's publishable/anon key. Do not put a service-role key in this app or in any `NEXT_PUBLIC_` variable.
 
-Apply `supabase/migrations/20260930_admin_settings_and_exceptions.sql` to the Supabase project before using shift configuration, excused permissions, or attendance-history status calculations. It creates the singleton `system_settings` row and `attendance_exceptions` table with role-aware row-level security.
+### Netlify
+
+In the Netlify site's **Environment variables** settings, add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` with the same values used in `.env.local`. Make them available to the production build (and deploy previews, if used), then trigger a new deploy. Next.js needs these public values while prerendering `/login`; the build will fail if either is missing.
+
+Apply `supabase/migrations/20260930_admin_settings_and_exceptions.sql` and `supabase/migrations/20261001_attendance_qr_tokens.sql` to the Supabase project before using shift configuration, excused permissions, or QR check-in. These migrations create the settings, exception, and QR-token database objects with role-aware access controls.
 
 ## Getting Started
 

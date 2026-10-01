@@ -10,6 +10,7 @@ import {
 } from '@/services/adminService'
 import { cn } from '@/lib/utils'
 import AdminSettingsPanel from '@/components/AdminSettingsPanel'
+import AdminQRCodeGenerator from '@/components/AdminQRCodeGenerator'
 
 type AdminDashboardProps = {
   adminName: string
@@ -222,6 +223,8 @@ export default function AdminDashboard({ adminName }: AdminDashboardProps) {
           </table>
         </div>
       </section>
+
+      <AdminQRCodeGenerator />
 
       <AdminSettingsPanel
         agents={overview?.agents.map((agent) => ({ id: agent.agentId, fullName: agent.fullName })) ?? []}

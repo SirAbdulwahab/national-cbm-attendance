@@ -43,39 +43,6 @@ export async function fetchTodayAttendance(agentId: string): Promise<AttendanceR
   return data
 }
 
-export async function handlePunchIn(agentId: string, qrPayload: string): Promise<AttendanceRecord> {
-  requireAgentId(agentId)
-  if (!qrPayload.trim()) {
-    throw new Error('Scan a QR code before punching in.')
-  }
-
-  const existingAttendance = await fetchTodayAttendance(agentId)
-  if (existingAttendance) {
-    throw new Error('Attendance has already been recorded for today.')
-  }
-
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('attendance')
-    .insert({
-      agent_id: agentId,
-      time_in: new Date().toISOString(),
-      time_out: null,
-      qr_verified: true,
-    })
-    .select(attendanceColumns)
-    .single()
-
-  if (error) {
-    if (error.code === '23505') {
-      throw new Error('Attendance has already been recorded for today.')
-    }
-    throw new Error(`Could not punch in: ${error.message}`)
-  }
-
-  return data
-}
-
 export async function handlePunchOut(agentId: string): Promise<AttendanceRecord> {
   requireAgentId(agentId)
   const attendance = await fetchTodayAttendance(agentId)

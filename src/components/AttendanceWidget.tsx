@@ -3,9 +3,9 @@
 import { BrowserQRCodeReader } from '@zxing/browser'
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, Camera, CheckCircle2, Clock3, Loader2, LogIn, LogOut, X } from 'lucide-react'
+import { punchInWithAttendanceQr } from '@/services/attendanceQrService'
 import {
   fetchTodayAttendance,
-  handlePunchIn,
   handlePunchOut,
   type AttendanceRecord,
 } from '@/services/attendanceService'
@@ -99,7 +99,7 @@ export default function AttendanceWidget({ agentId }: AttendanceWidgetProps) {
         setErrorMessage(null)
         setNotice(null)
 
-        void handlePunchIn(agentId, result.getText())
+        void punchInWithAttendanceQr(result.getText())
           .then((record) => {
             setAttendance(record)
             setNotice('QR scanned and shift started.')
