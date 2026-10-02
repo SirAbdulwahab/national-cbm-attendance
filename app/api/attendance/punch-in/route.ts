@@ -8,9 +8,11 @@ class PunchInError extends Error {
   }
 }
 
-async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+async function getAuthenticatedUser(request: Request) {
+  const authorization = request.headers.get('authorization')
+  const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1].trim()
+  const supabase = await createClient(bearerToken)
+  const { data: { user }, error } = await supabase.auth.getUser(bearerToken)
 
   if (error || !user) {
     throw new PunchInError('Your session is missing or has expired. Please sign in again, then scan the QR code.', 401)
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
       throw new PunchInError('The scanned QR code is invalid. Please scan an active attendance card.', 400)
     }
 
-    const { supabase, user } = await getAuthenticatedUser()
+    const { supabase, user } = await getAuthenticatedUser(request)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
