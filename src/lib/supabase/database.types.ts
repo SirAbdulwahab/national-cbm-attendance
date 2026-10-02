@@ -94,6 +94,66 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_qr: {
+        Row: {
+          id: string
+          qr_code: string
+          label: string
+          qr_value: string
+          is_active: boolean
+          activated_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          qr_code: string
+          label: string
+          qr_value: string
+          is_active?: boolean
+          activated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          qr_code?: string
+          label?: string
+          qr_value?: string
+          is_active?: boolean
+          activated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qr_activation_logs: {
+        Row: {
+          id: string
+          qr_id: string
+          qr_code: string
+          activated_by: string | null
+          activated_at: string
+          note: string | null
+        }
+        Insert: {
+          id?: string
+          qr_id: string
+          qr_code: string
+          activated_by?: string | null
+          activated_at?: string
+          note?: string | null
+        }
+        Update: {
+          id?: string
+          qr_id?: string
+          qr_code?: string
+          activated_by?: string | null
+          activated_at?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
       attendance_qr_tokens: {
         Row: {
           valid_date: string

@@ -1,65 +1,174 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { AlertCircle, Loader2, QrCode, RefreshCw } from 'lucide-react'
-import { rotateDailyAttendanceQrToken } from '@/services/attendanceQrService'
+import { AlertCircle, CheckCircle2, Loader2, Printer, RefreshCw } from 'lucide-react'
+import { activateAttendanceQrCard, fetchAttendanceQrCards, type AttendanceQrCard } from '@/services/attendanceQrService'
 
-type AttendanceQr = {
-  token: string
-  validDate: string
+function formatTimestamp(value: string | null) {
+  if (!value) return 'Never'
+
+  return new Date(value).toLocaleString([], {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
 }
 
 export default function AdminQRCodeGenerator() {
-  const [attendanceQr, setAttendanceQr] = useState<AttendanceQr | null>(null)
-  const [isRotating, setIsRotating] = useState(false)
+  const [cards, setCards] = useState<AttendanceQrCard[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  async function rotateToken() {
-    setIsRotating(true)
+  async function loadCards() {
+    setIsLoading(true)
     setErrorMessage(null)
 
     try {
-      setAttendanceQr(await rotateDailyAttendanceQrToken())
+      const payload = await fetchAttendanceQrCards()
+      setCards(payload)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Could not generate the attendance QR code.')
+      setErrorMessage(error instanceof Error ? error.message : 'Could not load the static QR cards.')
     } finally {
-      setIsRotating(false)
+      setIsLoading(false)
     }
+  }
+
+  async function activateCard(cardId: string) {
+    setIsUpdating(cardId)
+    setErrorMessage(null)
+
+    try {
+      const payload = await activateAttendanceQrCard(cardId)
+      setCards(payload)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not activate the selected QR card.')
+    } finally {
+      setIsUpdating(null)
+    }
+  }
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadInitialCards = async () => {
+      setIsLoading(true)
+      setErrorMessage(null)
+
+      try {
+        const payload = await fetchAttendanceQrCards()
+        if (isActive) {
+          setCards(payload)
+        }
+      } catch (error) {
+        if (isActive) {
+          setErrorMessage(error instanceof Error ? error.message : 'Could not load the static QR cards.')
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadInitialCards()
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+  const activeCard = useMemo(
+    () => cards.find((card) => card.is_active) ?? null,
+    [cards],
+  )
+
+  function printCards() {
+    window.print()
   }
 
   return (
     <section id="qr-module" className="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-qr-heading">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div>
-          <h3 id="attendance-qr-heading" className="font-bold text-slate-900">Attendance QR code</h3>
-          <p className="mt-1 text-sm text-slate-500">Daily check-in token</p>
+          <h3 id="attendance-qr-heading" className="font-bold text-slate-900">Static QR card management</h3>
+          <p className="mt-1 text-sm text-slate-500">QR-001, QR-002, and QR-003</p>
         </div>
-        <button
-          type="button"
-          onClick={rotateToken}
-          disabled={isRotating}
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isRotating ? <Loader2 className="h-4 w-4 animate-spin" /> : attendanceQr ? <RefreshCw className="h-4 w-4" /> : <QrCode className="h-4 w-4" />}
-          {isRotating ? 'Generating…' : attendanceQr ? 'Rotate QR code' : "Generate today's QR"}
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void loadCards()}
+            disabled={isLoading}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={printCards}
+            disabled={!cards.length || isLoading}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Printer className="h-4 w-4" />
+            Print cards
+          </button>
+        </div>
       </header>
 
-      <div className="flex min-h-72 flex-col items-center justify-center gap-4 px-5 py-6">
-        {attendanceQr ? (
-          <>
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <QRCodeSVG value={attendanceQr.token} size={240} level="H" includeMargin />
-            </div>
-            <p role="status" className="text-center text-sm text-slate-600">
-              Active for {attendanceQr.validDate} UTC. Rotating replaces the previous code.
-            </p>
-          </>
+      <div className="space-y-4 p-5">
+        {activeCard && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <span className="font-semibold">Active card:</span> {activeCard.qr_code} • {activeCard.label}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading QR cards...
+          </div>
         ) : (
-          <div className="max-w-sm text-center">
-            <QrCode className="mx-auto h-10 w-10 text-slate-400" aria-hidden="true" />
-            <p className="mt-3 text-sm text-slate-600">Generate a QR code for agents to scan when checking in.</p>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {cards.map((card) => (
+              <div key={card.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.qr_code}</p>
+                    <h4 className="mt-1 text-base font-bold text-slate-900">{card.label}</h4>
+                  </div>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${card.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'}`}>
+                    {card.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <QRCodeSVG value={card.qr_value} size={170} level="H" includeMargin />
+                </div>
+
+                <div className="mt-3 space-y-2 text-sm text-slate-600">
+                  <p>
+                    <span className="font-medium text-slate-700">Value:</span> {card.qr_value}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-700">Activated:</span> {formatTimestamp(card.activated_at)}
+                  </p>
+                </div>
+
+                {!card.is_active && (
+                  <button
+                    type="button"
+                    onClick={() => void activateCard(card.id)}
+                    disabled={isUpdating === card.id}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isUpdating === card.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    {isUpdating === card.id ? 'Setting active...' : 'Set as Active'}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
 

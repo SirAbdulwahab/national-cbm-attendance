@@ -1,63 +1,80 @@
-'use server'
-
-import { createHash, randomBytes } from 'node:crypto'
-import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
 
 type AttendanceRecord = Database['public']['Tables']['attendance']['Row']
 
-async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) throw new Error('You must be signed in to use attendance QR codes.')
-  return { supabase, user }
+export type AttendanceQrCard = {
+  id: string
+  qr_code: string
+  label: string
+  qr_value: string
+  is_active: boolean
+  activated_at: string | null
+  created_at: string | null
+  updated_at: string | null
 }
 
-async function requireAdmin() {
-  const { supabase, user } = await getAuthenticatedUser()
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
+type AdminQrResponse = {
+  items?: AttendanceQrCard[]
+  cards?: AttendanceQrCard[]
+  success?: boolean
+  message?: string
+}
 
-  if (error || profile?.role !== 'admin') throw new Error('Administrator access is required.')
-  return { supabase, user }
+async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  })
+
+  const payload = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error((payload as { message?: string })?.message ?? 'Request failed.')
+  }
+
+  return payload as T
+}
+
+export async function fetchAttendanceQrCards(): Promise<AttendanceQrCard[]> {
+  const payload = await requestJson<AttendanceQrCard[] | AdminQrResponse>('/api/admin/attendance-qr', {
+    method: 'GET',
+  })
+
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  return payload.items ?? payload.cards ?? []
+}
+
+export async function activateAttendanceQrCard(qrId: string): Promise<AttendanceQrCard[]> {
+  const payload = await requestJson<AdminQrResponse>('/api/admin/attendance-qr', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'activate', qrId }),
+  })
+
+  return payload.items ?? payload.cards ?? (await fetchAttendanceQrCards())
 }
 
 export async function rotateDailyAttendanceQrToken(): Promise<{ token: string; validDate: string }> {
-  const { supabase, user } = await requireAdmin()
-  const token = randomBytes(32).toString('base64url')
-  const tokenHash = createHash('sha256').update(token).digest('hex')
-  const validDate = new Date().toISOString().slice(0, 10)
-
-  const { error } = await supabase
-    .from('attendance_qr_tokens')
-    .upsert({ valid_date: validDate, token_hash: tokenHash, created_by: user.id }, { onConflict: 'valid_date' })
-
-  if (error) throw new Error(`Could not rotate today's QR code: ${error.message}`)
-  return { token, validDate }
+  return requestJson<{ token: string; validDate: string }>('/api/admin/attendance-qr', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'legacy-rotate' }),
+  })
 }
 
 export async function punchInWithAttendanceQr(token: string): Promise<AttendanceRecord> {
   const normalizedToken = token.trim()
-  if (!normalizedToken || normalizedToken.length > 128) throw new Error('The QR code is invalid.')
-
-  const { supabase, user } = await getAuthenticatedUser()
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (profileError || profile?.role !== 'agent') throw new Error('Only agent accounts can punch in.')
-
-  const { data, error } = await supabase.rpc('punch_in_with_qr', { p_qr_token: normalizedToken })
-  if (error) {
-    if (error.code === '23505') throw new Error('Attendance has already been recorded for today.')
-    if (error.code === '28000') throw new Error('This QR code is invalid, expired, or already rotated.')
-    throw new Error(`Could not punch in: ${error.message}`)
+  if (!normalizedToken || normalizedToken.length > 128) {
+    throw new Error('The QR code is invalid.')
   }
-  if (!data) throw new Error('The attendance record was not created.')
-  return data
+
+  return requestJson<AttendanceRecord>('/api/attendance/punch-in', {
+    method: 'POST',
+    body: JSON.stringify({ token: normalizedToken }),
+  })
 }
