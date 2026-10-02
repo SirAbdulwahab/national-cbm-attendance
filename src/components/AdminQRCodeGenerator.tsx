@@ -29,7 +29,7 @@ export default function AdminQRCodeGenerator() {
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-qr-heading">
+    <section id="qr-module" className="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-qr-heading">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div>
           <h3 id="attendance-qr-heading" className="font-bold text-slate-900">Attendance QR code</h3>

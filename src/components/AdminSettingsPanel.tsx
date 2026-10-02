@@ -4,9 +4,18 @@ import { useState, useEffect } from 'react'
 import { fetchSystemSettings, updateSystemSettings, grantAgentException } from '@/services/adminSettingsService'
 import { Settings, UserCheck, Send } from 'lucide-react'
 
+type AgentOption = {
+  id: string
+  full_name?: string | null
+}
+
 interface AdminSettingsProps {
-  agents: any[]
+  agents: AgentOption[]
   onRefresh: () => void
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
 }
 
 export default function AdminSettingsPanel({ agents, onRefresh }: AdminSettingsProps) {
@@ -37,11 +46,10 @@ export default function AdminSettingsPanel({ agents, onRefresh }: AdminSettingsP
     e.preventDefault()
     try {
       setLoading(true)
-      // Calls the service without passing a hardcoded ID string
       await updateSystemSettings(resumption, closing, Number(threshold))
       alert('System settings updated successfully!')
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -59,15 +67,15 @@ export default function AdminSettingsPanel({ agents, onRefresh }: AdminSettingsP
       alert('Exception / Permission granted successfully!')
       setExceptionNote('')
       onRefresh()
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(getErrorMessage(err))
     } finally {
       setExcuseLoading(false)
     }
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div id="settings-module" className="scroll-mt-24 mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Shift Settings Form */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
@@ -130,7 +138,7 @@ export default function AdminSettingsPanel({ agents, onRefresh }: AdminSettingsP
             >
               <option value="">-- Choose Agent --</option>
               {agents.map((ag) => (
-                <option key={ag.id} value={ag.id}>{ag.full_name}</option>
+                <option key={ag.id} value={ag.id}>{ag.full_name || 'Unnamed agent'}</option>
               ))}
             </select>
           </div>

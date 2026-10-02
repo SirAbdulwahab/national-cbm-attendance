@@ -157,7 +157,7 @@ export default function AttendanceWidget({ agentId }: AttendanceWidgetProps) {
   }
 
   return (
-    <section className="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-heading">
+    <section id="attendance-module" className="scroll-mt-24 mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-heading">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
         <div>
           <h2 id="attendance-heading" className="text-lg font-bold text-slate-900">Today&apos;s attendance</h2>

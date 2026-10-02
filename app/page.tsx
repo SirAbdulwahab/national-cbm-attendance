@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import AttendanceWidget from '@/components/AttendanceWidget'
 import AdminDashboard from '@/components/AdminDashboard'
 import AgentHistoryWidget from '@/components/AgentHistoryWidget'
+import DashboardSidebar from '@/components/DashboardSidebar'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -38,52 +39,58 @@ export default async function DashboardPage() {
       </header>
 
       {/* Dashboard Body */}
-      <div className="flex-1 p-8 max-w-5xl w-full mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h2 className="text-2xl font-bold mb-2">Welcome back, {profile?.full_name || user.email || 'Agent'}!</h2>
-          <p className="text-slate-500">You are successfully authenticated into the National Call Center system.</p>
-          {profileError && (
-            <p role="status" className="mt-3 text-sm text-amber-700">
-              Profile details are temporarily unavailable.
-            </p>
-          )}
-          {!profile && !profileError && (
-            <p role="status" className="mt-3 text-sm text-amber-700">
-              No profile has been assigned to this account yet.
-            </p>
-          )}
-        </div>
+      <div className="flex-1 p-4 md:p-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
+          <DashboardSidebar role={profile?.role === 'admin' ? 'admin' : 'agent'} />
 
-        {profile?.role === 'admin' ? (
-          <AdminDashboard adminName={profile.full_name || user.email || 'Administrator'} />
-        ) : (
-          <>
-            <AttendanceWidget agentId={user.id} />
-            <AgentHistoryWidget agentId={user.id} />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={cn('bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4', profileError && 'border-amber-300')}>
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                  <UserCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Account Role</p>
-                  <p className="text-lg font-bold capitalize">{profile?.role || 'Not assigned'}</p>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-                <div className="p-3 bg-green-50 text-green-600 rounded-lg">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Security Status</p>
-                  <p className="text-lg font-bold text-green-600">Active &amp; Secured</p>
-                </div>
-              </div>
+          <div className="flex-1">
+            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-2 text-2xl font-bold text-slate-900">Welcome back, {profile?.full_name || user.email || 'Agent'}!</h2>
+              <p className="text-slate-500">You are successfully authenticated into the National Call Center system.</p>
+              {profileError && (
+                <p role="status" className="mt-3 text-sm text-amber-700">
+                  Profile details are temporarily unavailable.
+                </p>
+              )}
+              {!profile && !profileError && (
+                <p role="status" className="mt-3 text-sm text-amber-700">
+                  No profile has been assigned to this account yet.
+                </p>
+              )}
             </div>
-          </>
-        )}
+
+            {profile?.role === 'admin' ? (
+              <AdminDashboard adminName={profile.full_name || user.email || 'Administrator'} />
+            ) : (
+              <>
+                <AttendanceWidget agentId={user.id} />
+                <AgentHistoryWidget agentId={user.id} />
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className={cn('flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm', profileError && 'border-amber-300')}>
+                    <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
+                      <UserCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Account Role</p>
+                      <p className="text-lg font-bold capitalize">{profile?.role || 'Not assigned'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="rounded-lg bg-green-50 p-3 text-green-600">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Security Status</p>
+                      <p className="text-lg font-bold text-green-600">Active &amp; Secured</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </main>
   )

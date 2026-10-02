@@ -73,7 +73,7 @@ export default function AgentHistoryWidget({ agentId }: AgentHistoryWidgetProps)
   }
 
   return (
-    <section className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-history-heading">
+    <section id="history-module" className="scroll-mt-24 mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="attendance-history-heading">
       <header className="flex items-center justify-between gap-3 px-5 py-4">
         <div>
           <h3 id="attendance-history-heading" className="font-bold text-slate-900">Attendance history</h3>

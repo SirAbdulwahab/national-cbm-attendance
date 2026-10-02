@@ -9,6 +9,7 @@ import {
   type AdminAttendanceOverview,
 } from '@/services/adminService'
 import { cn } from '@/lib/utils'
+import AdminAttendanceExport from '@/components/AdminAttendanceExport'
 import AdminSettingsPanel from '@/components/AdminSettingsPanel'
 import AdminQRCodeGenerator from '@/components/AdminQRCodeGenerator'
 
@@ -134,7 +135,7 @@ export default function AdminDashboard({ adminName }: AdminDashboardProps) {
   }
 
   return (
-    <section className="space-y-6" aria-labelledby="admin-dashboard-heading">
+    <section id="admin-overview-module" className="scroll-mt-24 space-y-6" aria-labelledby="admin-dashboard-heading">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase text-blue-700">Admin oversight</p>
@@ -225,6 +226,8 @@ export default function AdminDashboard({ adminName }: AdminDashboardProps) {
       </section>
 
       <AdminQRCodeGenerator />
+
+      <AdminAttendanceExport />
 
       <AdminSettingsPanel
         agents={overview?.agents.map((agent) => ({ id: agent.agentId, fullName: agent.fullName })) ?? []}
