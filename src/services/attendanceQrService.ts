@@ -1,4 +1,5 @@
 import type { Database } from '@/lib/supabase/database.types'
+import { createClient } from '@/lib/supabase/client'
 
 type AttendanceRecord = Database['public']['Tables']['attendance']['Row']
 
@@ -81,8 +82,18 @@ export async function punchInWithAttendanceQr(token: string): Promise<Attendance
     throw new Error('The QR code is invalid.')
   }
 
+  const supabase = createClient()
+  const { data: { session }, error } = await supabase.auth.getSession()
+
+  if (error) {
+    throw new Error('Could not verify your sign-in session. Please sign in again and retry.')
+  }
+
   return requestJson<AttendanceRecord>('/api/attendance/punch-in', {
     method: 'POST',
     body: JSON.stringify({ token: normalizedToken }),
+    headers: session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined,
   })
 }
