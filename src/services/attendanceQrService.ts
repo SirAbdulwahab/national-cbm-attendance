@@ -23,7 +23,7 @@ type AdminQrResponse = {
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
-    credentials: 'same-origin',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(init.headers ?? {}),

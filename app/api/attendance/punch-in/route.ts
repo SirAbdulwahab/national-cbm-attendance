@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+class PunchInError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'PunchInError'
+  }
+}
+
 async function getAuthenticatedUser() {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
 
   if (error || !user) {
-    throw new Error('You must be signed in to use attendance QR codes.')
+    throw new PunchInError('Your session is missing or has expired. Please sign in again, then scan the QR code.', 401)
   }
 
   return { supabase, user }
@@ -18,7 +25,7 @@ export async function POST(request: Request) {
     const token = typeof body?.token === 'string' ? body.token.trim() : ''
 
     if (!token || token.length > 128) {
-      throw new Error('The QR code is invalid.')
+      throw new PunchInError('The scanned QR code is invalid. Please scan an active attendance card.', 400)
     }
 
     const { supabase, user } = await getAuthenticatedUser()
@@ -29,28 +36,36 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (profileError || profile?.role !== 'agent') {
-      throw new Error('Only agent accounts can punch in.')
+      throw new PunchInError('This account is not set up as an agent and cannot check in.', 403)
     }
 
     const { data, error } = await supabase.rpc('punch_in_with_qr', { p_qr_token: token })
 
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Attendance has already been recorded for today.')
+        throw new PunchInError('Attendance has already been recorded for today.', 409)
       }
       if (error.code === '28000') {
-        throw new Error('This QR code is invalid, expired, or already rotated.')
+        throw new PunchInError('This QR code is invalid or expired. Please scan the currently active attendance card.', 400)
       }
-      throw new Error(`Could not punch in: ${error.message}`)
+      console.error('Attendance punch-in RPC failed:', error.message)
+      throw new PunchInError('We could not record your check-in. Please try again or contact an administrator.', 500)
     }
 
     if (!data) {
-      throw new Error('The attendance record was not created.')
+      throw new PunchInError('The attendance record was not created. Please try again.', 500)
     }
 
     return NextResponse.json(data)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Could not punch in with the QR code.'
-    return NextResponse.json({ message }, { status: 400 })
+    if (error instanceof PunchInError) {
+      return NextResponse.json({ message: error.message }, { status: error.status })
+    }
+
+    console.error('Unexpected attendance punch-in error:', error)
+    return NextResponse.json(
+      { message: 'We could not complete check-in right now. Please try again.' },
+      { status: 500 },
+    )
   }
 }
