@@ -24,3 +24,93 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+.qr-print-layout {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 14mm;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #qr-print-layout,
+  #qr-print-layout * {
+    visibility: visible !important;
+  }
+
+  #qr-print-layout {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: block !important;
+    overflow: visible;
+    padding: 14mm;
+    background: #fff;
+    color: #111827;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .qr-print-header {
+    margin-bottom: 10mm;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 5mm;
+  }
+
+  .qr-print-header h1 {
+    margin: 0;
+    font-size: 22pt;
+  }
+
+  .qr-print-header p {
+    margin: 2mm 0 0;
+    color: #475569;
+    font-size: 11pt;
+  }
+
+  .qr-print-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8mm;
+  }
+
+  .qr-print-card {
+    break-inside: avoid;
+    border: 1px solid #cbd5e1;
+    padding: 8mm;
+    text-align: center;
+  }
+
+  .qr-print-label {
+    margin: 0 0 2mm;
+    color: #475569;
+    font-size: 10pt;
+  }
+
+  .qr-print-card h2 {
+    margin: 0;
+    font-size: 18pt;
+  }
+
+  .qr-print-code {
+    display: flex;
+    justify-content: center;
+    margin: 5mm 0;
+  }
+
+  .qr-print-code svg {
+    width: 55mm;
+    height: 55mm;
+  }
+
+  .qr-print-instructions {
+    margin: 0;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+}

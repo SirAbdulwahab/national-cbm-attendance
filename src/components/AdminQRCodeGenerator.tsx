@@ -19,6 +19,7 @@ export default function AdminQRCodeGenerator() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [printSelection, setPrintSelection] = useState<string | null>(null)
 
   async function loadCards() {
     setIsLoading(true)
@@ -83,8 +84,25 @@ export default function AdminQRCodeGenerator() {
     [cards],
   )
 
-  function printCards() {
-    window.print()
+  const cardsToPrint = printSelection === 'all'
+    ? cards
+    : cards.filter((card) => card.id === printSelection)
+
+  useEffect(() => {
+    if (!printSelection) return
+
+    const clearPrintSelection = () => setPrintSelection(null)
+    window.addEventListener('afterprint', clearPrintSelection)
+    const frameId = window.requestAnimationFrame(() => window.print())
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      window.removeEventListener('afterprint', clearPrintSelection)
+    }
+  }, [printSelection])
+
+  function printCards(cardId?: string) {
+    setPrintSelection(cardId ?? 'all')
   }
 
   return (
@@ -107,7 +125,7 @@ export default function AdminQRCodeGenerator() {
           </button>
           <button
             type="button"
-            onClick={printCards}
+            onClick={() => printCards()}
             disabled={!cards.length || isLoading}
             className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -156,17 +174,27 @@ export default function AdminQRCodeGenerator() {
                   </p>
                 </div>
 
-                {!card.is_active && (
+                <div className="mt-4 flex gap-2">
+                  {!card.is_active && (
+                    <button
+                      type="button"
+                      onClick={() => void activateCard(card.id)}
+                      disabled={isUpdating === card.id}
+                      className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isUpdating === card.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {isUpdating === card.id ? 'Setting active...' : 'Set as Active'}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => void activateCard(card.id)}
-                    disabled={isUpdating === card.id}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => printCards(card.id)}
+                    className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
                   >
-                    {isUpdating === card.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                    {isUpdating === card.id ? 'Setting active...' : 'Set as Active'}
+                    <Printer className="h-4 w-4" />
+                    Print card
                   </button>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -194,6 +222,27 @@ export default function AdminQRCodeGenerator() {
           </div>
         )}
       </div>
+
+      {cards.length > 0 && (
+        <div id="qr-print-layout" className="qr-print-layout">
+          <header className="qr-print-header">
+            <h1>Physical Attendance QR Cards</h1>
+            <p>Official cards for shift check-in</p>
+          </header>
+          <div className="qr-print-grid">
+            {cardsToPrint.map((card) => (
+              <article className="qr-print-card" key={`print-${card.id}`}>
+                <p className="qr-print-label">{card.label || 'Attendance card'}</p>
+                <h2>{card.qr_code}</h2>
+                <div className="qr-print-code">
+                  <QRCodeSVG value={card.qr_value} size={220} level="H" includeMargin />
+                </div>
+                <p className="qr-print-instructions">Scan to clock-in for shift</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   )
 }
