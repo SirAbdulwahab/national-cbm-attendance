@@ -26,7 +26,7 @@ export default function AdminQRCodeGenerator() {
 
     try {
       const payload = await fetchAttendanceQrCards()
-      setCards(payload)
+      setCards(Array.isArray(payload) ? payload : [])
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Could not load the static QR cards.')
     } finally {
@@ -58,7 +58,7 @@ export default function AdminQRCodeGenerator() {
       try {
         const payload = await fetchAttendanceQrCards()
         if (isActive) {
-          setCards(payload)
+          setCards(Array.isArray(payload) ? payload : [])
         }
       } catch (error) {
         if (isActive) {
@@ -129,14 +129,14 @@ export default function AdminQRCodeGenerator() {
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading QR cards...
           </div>
-        ) : (
+        ) : cards.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-3">
             {cards.map((card) => (
               <div key={card.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.qr_code}</p>
-                    <h4 className="mt-1 text-base font-bold text-slate-900">{card.label}</h4>
+                    <h4 className="text-base font-bold text-slate-900">{card.qr_code}</h4>
+                    <p className="mt-1 text-sm text-slate-500">{card.label}</p>
                   </div>
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${card.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'}`}>
                     {card.is_active ? 'Active' : 'Inactive'}
@@ -170,12 +170,28 @@ export default function AdminQRCodeGenerator() {
               </div>
             ))}
           </div>
-        )}
+        ) : !errorMessage ? (
+          <div className="rounded-lg border border-dashed border-slate-300 px-4 py-8 text-center">
+            <p className="font-semibold text-slate-800">No QR cards found</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Add QR-001, QR-002, and QR-003 in Supabase, then refresh this panel.
+            </p>
+          </div>
+        ) : null}
 
         {errorMessage && (
-          <p role="alert" className="flex items-start gap-2 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{errorMessage}
-          </p>
+          <div role="alert" className="flex items-start justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{errorMessage}
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadCards()}
+              className="shrink-0 font-semibold underline underline-offset-2"
+            >
+              Try again
+            </button>
+          </div>
         )}
       </div>
     </section>
