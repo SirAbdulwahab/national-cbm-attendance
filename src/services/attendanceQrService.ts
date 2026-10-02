@@ -30,10 +30,18 @@ async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
     },
   })
 
-  const payload = await response.json().catch(() => ({}))
+  const responseText = await response.text()
+  let payload: unknown = {}
+
+  try {
+    payload = responseText ? JSON.parse(responseText) : {}
+  } catch {
+    payload = {}
+  }
 
   if (!response.ok) {
-    throw new Error((payload as { message?: string })?.message ?? 'Request failed.')
+    const message = (payload as { message?: string })?.message
+    throw new Error(message ?? `Request failed (HTTP ${response.status} ${response.statusText}).`)
   }
 
   return payload as T

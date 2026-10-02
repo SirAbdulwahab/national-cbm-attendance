@@ -29,22 +29,17 @@ async function requireAdmin() {
 }
 
 async function listStaticQrCards(supabase: Awaited<ReturnType<typeof createClient>>) {
-  try {
-    const { data, error } = await supabase
-      .from('attendance_qr')
-      .select('*')
-      .order('qr_code', { ascending: true })
+  const { data, error } = await supabase
+    .from('attendance_qr')
+    .select('*')
+    .order('qr_code', { ascending: true })
 
-    if (error) {
-      console.warn('Attendance QR cards query failed:', error.message)
-      return []
-    }
-
-    return data ?? []
-  } catch (error) {
-    console.warn('Attendance QR cards list failed:', error)
-    return []
+  if (error) {
+    console.error('Attendance QR cards query failed:', error.message)
+    throw new Error(`Could not load QR cards: ${error.message}. Apply the static attendance cards migration if the table does not exist.`)
   }
+
+  return data ?? []
 }
 
 async function activateStaticQrCard(supabase: Awaited<ReturnType<typeof createClient>>, qrId: string, userId: string) {
@@ -65,11 +60,15 @@ async function activateStaticQrCard(supabase: Awaited<ReturnType<typeof createCl
     }
 
     const now = new Date().toISOString()
-
-    await supabase
+    const { error: deactivateError } = await supabase
       .from('attendance_qr')
       .update({ is_active: false, updated_at: now })
       .neq('id', '')
+
+    if (deactivateError) {
+      console.error('Unable to deactivate existing QR cards:', deactivateError.message)
+      return { items: [], message: `Could not update QR card activation: ${deactivateError.message}` }
+    }
 
     const { error: activateError } = await supabase
       .from('attendance_qr')
@@ -103,7 +102,7 @@ async function activateStaticQrCard(supabase: Awaited<ReturnType<typeof createCl
     return { items, success: true }
   } catch (error) {
     console.warn('QR activation failed:', error)
-    return { items: [], message: 'QR activation could not be completed.' }
+    return { items: [], message: error instanceof Error ? error.message : 'QR activation could not be completed.' }
   }
 }
 
@@ -114,7 +113,8 @@ export async function GET() {
     return NextResponse.json(items)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not load static QR cards.'
-    return NextResponse.json({ message }, { status: 400 })
+    const status = message.includes('signed in') ? 401 : message.includes('Administrator') ? 403 : 500
+    return NextResponse.json({ message }, { status })
   }
 }
 
@@ -148,6 +148,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ token, validDate })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Could not generate the attendance QR code.'
-    return NextResponse.json({ message }, { status: 400 })
+    const status = message.includes('signed in') ? 401 : message.includes('Administrator') ? 403 : 400
+    return NextResponse.json({ message }, { status })
   }
 }

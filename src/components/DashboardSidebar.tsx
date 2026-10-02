@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Activity, BarChart3, CalendarClock, History, QrCode, Settings, ShieldCheck } from 'lucide-react'
 
 type DashboardSidebarProps = {
@@ -42,15 +41,17 @@ export default function DashboardSidebar({ role }: DashboardSidebarProps) {
             ))}
 
             <li className="pt-2">
-              <Link
-                href="/auth/signout"
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-              >
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                >
                 <span className="flex h-8 w-8 items-center justify-center rounded-md bg-red-50 text-red-600">
                   <ShieldCheck className="h-4 w-4" />
                 </span>
                 Sign out
-              </Link>
+                </button>
+              </form>
             </li>
           </ul>
         </nav>
